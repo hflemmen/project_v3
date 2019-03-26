@@ -4,12 +4,11 @@ import (
 	"./MakkerModul/connector"
 	"./MakkerModul/decoding"
 	"./network/bcast"
-	"./network/localip"
+	"./network/idGenerator"
 	"./network/peers"
 	"./orders/elevio/ordStruct"
 	"flag"
 	"fmt"
-	"os"
 	"time"
 )
 
@@ -27,7 +26,7 @@ type MsgHandler struct {
 	MsgToElev    decoding.ElevatorMsg
 	MsgFromElev  decoding.ElevatorMsg
 
-	MsgToMaster MsgFromHandlerToHandler
+	MsgToMaster   MsgFromHandlerToHandler
 	MsgFromMaster MsgFromHandlerToHandler
 
 	RelationElevator relationship
@@ -43,14 +42,16 @@ type MsgFromHandlerToHandler struct {
 func main() {
 	H := MsgHandler{MsgFromElev: decoding.ElevatorMsg{Number: -1},
 		RelationElevator: Disconnected, RelationMaster: Disconnected}
-	var id string
-	flag.StringVar(&id, "id", "Elevator", "id of this peer")
+	var myName string
+	flag.StringVar(&myName, "name", "", "id of this peer")
 	flag.Parse()
 
-	if id == "" {
-		localIP, _ := localip.LocalIP()
-		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
+	if myName == "" {
+		myName = idGenerator.GetRandomID()
 	}
+
+	id := "Elev - " + myName
+	fmt.Printf("#####################################\nelevtorMSGHANDLER with myName %v \n#####################################\n", myName)
 
 	H.MsgToMaster.Id = id
 	H.MsgToMaster.Number = 0
@@ -58,7 +59,7 @@ func main() {
 	peerUpdateCh := make(chan peers.PeerUpdate)
 	peerTxEnable := make(chan bool)
 
-	go peers.Transmitter(15647, id,peerTxEnable,peerTxEnable)
+	go peers.Transmitter(15647, id, peerTxEnable, peerTxEnable)
 	go peers.Receiver(15647, peerUpdateCh)
 
 	helloTx := make(chan MsgFromHandlerToHandler)
@@ -67,16 +68,14 @@ func main() {
 	go bcast.Transmitter(16569, helloTx)
 	go bcast.Receiver(16569, helloRx)
 
-	
 	go func() {
 		for a := range repeatTx {
-			for i := 0; i < 5; i++{
+			for i := 0; i < 5; i++ {
 				helloTx <- a
 				fmt.Println(a.Number)
 			}
 		}
 	}()
-    
 
 	go func() {
 		//helloMsg := MsgFromHandlerToHandler{Id: "I'm elevator msgHandler", Number: 0}
@@ -86,8 +85,8 @@ func main() {
 			time.Sleep(time.Second)
 		}
 	}()
-	receiveLocal,msgChanLocal := connector.EstablishLocalTunnel(
-		                         "elevator_fsm.go",55555,44444)
+	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
+		"elevator_fsm.go", 55555, 44444)
 	printStatus := make(chan bool)
 	go func() {
 		for {
@@ -116,7 +115,7 @@ func main() {
 				a.States.Order[0] = a.States.LightMatrix[0]
 				a.States.Order[1] = a.States.LightMatrix[1]
 				a.States.ID += " MsgHandler Connection"
-				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E:a.States})
+				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E: a.States})
 			}
 
 		case a := <-receiveLocal:
