@@ -38,12 +38,11 @@ func main() {
 		case a := <-receiveLocal:
 			fmt.Println("New OrderUpdate Master")
 			msg := decoding.DecodeBackupMsg(a)
-			elevId := cost.ChooseElevator(msg.Elevators,msg.LatestOrder.Button,msg.LatestOrder.Floor)
-			e := msg.Elevators[elevId].E
-			e.LightMatrix[int(msg.LatestOrder.Button)][msg.LatestOrder.Floor] = true
+			elevId := msg.ChooseElevator(msg.LatestOrder.Button,msg.LatestOrder.Floor)
+			elevStatus := msg.Elevators[elevId]
+			elevStatus.E.LightMatrix[int(msg.LatestOrder.Button)][msg.LatestOrder.Floor] = true
 			e.PrintLightMatrix()
 			e.ID = elevId
-			fmt.Println("Hei")
 			msg2 := decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E:e})
 			msgChanLocal <- msg2
 		}
