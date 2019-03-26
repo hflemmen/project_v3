@@ -133,6 +133,7 @@ func main() {
 			case "Connection established":
 				if H.RelationElevator == Disconnected {
 					H.RelationElevator = Connected
+					pendingUpdates <- "From myself"
 				}
 			default:
 				msg := decoding.DecodeElevatorMsg(a)
