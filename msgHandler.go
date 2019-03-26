@@ -16,10 +16,9 @@ import (
 type relationship int
 
 const (
-	Crashed        relationship = 2
-	PendingUpdates              = 1
-	UpToDate                    = 0
-	Disconnected                = -1
+	Crashed      relationship = 2
+	Connected                 = 1
+	Disconnected              = 0
 )
 
 type MsgHandler struct {
@@ -106,15 +105,15 @@ func main() {
 	for {
 		select {
 		case p := <-peerUpdateCh:
-			if strings.HasPrefix(p.New, "MASTER") {
-				fmt.Printf("Connected to master \n")
-				H.RelationMaster = PendingUpdates
-			}
 			for _, name := range p.Lost {
 				if strings.HasPrefix(name, "MASTER") {
 					fmt.Println("LOST CONNECTION TO MASTER")
 					H.RelationMaster = Disconnected
 				}
+			}
+			if strings.HasPrefix(p.New, "MASTER") {
+				fmt.Printf("Connected to master \n")
+				H.RelationMaster = Connected
 			}
 
 		case a := <-netRx:
@@ -133,7 +132,7 @@ func main() {
 				H.RelationElevator = Crashed
 			case "Connection established":
 				if H.RelationElevator == Disconnected {
-					H.RelationElevator = PendingUpdates
+					H.RelationElevator = Connected
 				}
 			default:
 				msg := decoding.DecodeElevatorMsg(a)
@@ -154,7 +153,7 @@ func main() {
 					H.RelationElevator = Crashed
 					pendingUpdates <- "From myself"
 				}
-				H.RelationElevator = UpToDate
+				H.RelationElevator = Connected
 			}
 		case <-printStatus:
 			//fmt.Printf("\nPRINTOUT %v\n\n", H.MyElevStates)
