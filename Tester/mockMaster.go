@@ -1,13 +1,14 @@
 package main
 
 import (
-	"../orders/elevio/ordStruct"
+	//"../orders/elevio/ordStruct"
 	"../MakkerModul/connector"
 	"../MakkerModul/decoding"
+	"../cost"
 	"fmt"
-	"os"
-	"time"
-	"math/rand"
+	//"os"
+	//"time"
+	//"math/rand"
 )
 
 // We define some custom struct to send over the network.
@@ -15,9 +16,8 @@ import (
 //  will be received as zero-values.
 
 func main() {
-	newOrder := make(chan ordStruct.ButtonEvent)
-	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
-		"handlerBackup.go", 44444, 55555)
+	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel("../handlerBackup.go", 22222, 33333)
+	/*
 	go func() {
 		for {
 			someOrder := ordStruct.ButtonEvent{Button:ordStruct.ButtonType(rand.Intn(2)),Floor:rand.Intn(3)}
@@ -30,25 +30,22 @@ func main() {
 			newOrder <- someOrder
 		}
 	}()
+	*/
 	fmt.Println("Started")
 	for {
 		select {
 
 		case a := <-receiveLocal:
-			fmt.Printf("Received from: %#v\n", a.Id)
-			backupMsg := decoding.BackupMsg{Elevators: elevMap, Number: 1}
-			// do something
-			//key = cost
-				msgChanLocal <- decoding.EncodeBackupMsg(backupMsg)
-			msgChanLocal <- msg
-		case a := <-newOrder:
-			if a.Floor != e.Floor {
-				e.LightMatrix[int(a.Button)][a.Floor] = 1
-			} else {
-				e.LightMatrix[int(a.Button)][a.Floor] = 0
-			}
-			msg := MsgFromHandlerToHandler{Id: "MASTER", States:e,Number : 1}
-			helloTx <- msg
+			fmt.Println("New OrderUpdate Master")
+			msg := decoding.DecodeBackupMsg(a)
+			elevId := cost.ChooseElevator(msg.Elevators,msg.LatestOrder.Button,msg.LatestOrder.Floor)
+			e := msg.Elevators[elevId].E
+			e.LightMatrix[int(msg.LatestOrder.Button)][msg.LatestOrder.Floor] = true
+			e.PrintLightMatrix()
+			e.ID = elevId
+			fmt.Println("Hei")
+			msg2 := decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E:e})
+			msgChanLocal <- msg2
 		}
 	}
 }

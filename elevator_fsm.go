@@ -26,7 +26,7 @@ func main() {
 		"msgHandler.go", 44444, 55555)
 	go elevio.PollButtons(newButton, newOrders)
 	go elevio.PollFloorSensor(floorArrivals)
-	go message_handler(receiveLocal, msgChanLocal, newOrders, states, updateLights)
+	go connectionMsgHandler(receiveLocal, msgChanLocal, newOrders, states, updateLights)
 	elevator_fsm(e, newOrders, floorArrivals, states, updateLights, newButton)
 }
 
@@ -44,7 +44,7 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 		e.Floor = f
 		e.Behaviour = ordStruct.E_DoorOpen
 	}
-	states <- e
+	states <- e.Duplicate()
 	for {
 		select {
 		case a := <-newButton:
@@ -154,11 +154,12 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 		case a := <-updateLights:
 			e.LightMatrix = a
 			orders.UpdateLights(e)
+
 		}
 	}
 }
 
-func message_handler(receive <-chan string, msgChan chan<- string,
+func connectionMsgHandler(receive <-chan string, msgChan chan<- string,
 	newOrders chan ordStruct.ButtonEvent, states chan ordStruct.Elevator, updateLights chan<- ordStruct.LightType) {
 	msgToHandler := decoding.ElevatorMsg{Number: 1}
 	//hasConnection := false
@@ -166,7 +167,6 @@ func message_handler(receive <-chan string, msgChan chan<- string,
 		select {
 		case a := <-receive:
 			msg := decoding.DecodeElevatorMsg(a)
-			msg.E.ID += " ELEVATOR"
 			fmt.Println(msg.E.ID)
 			buttons, floors := msgToHandler.E.Differences(msg.E)
 			for i := 0; i < len(buttons); i++ {

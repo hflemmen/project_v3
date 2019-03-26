@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"time"
+	"strings"
 )
 
 type relationship int
@@ -98,23 +99,24 @@ func main() {
 	for {
 		select {
 		case p := <-peerUpdateCh:
-			if p.New == "MASTER" {
+			if strings.HasPrefix(p.New,"Backup") { //p.New == "MASTER" {
 				fmt.Printf("Connected to master \n")
 				H.RelationMaster = PendingUpdates
 			}
 			for _, name := range p.Lost {
-				if name == "MASTER" {
+				if strings.HasPrefix(name,"Backup"){ //"MASTER" {
 					fmt.Println("LOST CONNECTION TO MASTER")
 					H.RelationMaster = Disconnected
 				}
 			}
 
 		case a := <-helloRx:
-			if a.Id == "MASTER" {
+			if  strings.HasPrefix(a.Id,"Backup"){ //a.Id == "MASTER" {
 				fmt.Printf("Received from (not local) %v\n", a.Id)
-				a.States.Order[0] = a.States.LightMatrix[0]
-				a.States.Order[1] = a.States.LightMatrix[1]
-				a.States.ID += " MsgHandler Connection"
+				if a.States.ID == id { // my order to execute
+					a.States.Order[0] = a.States.LightMatrix[0]
+					a.States.Order[1] = a.States.LightMatrix[1]
+				}			
 				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E: a.States})
 			}
 

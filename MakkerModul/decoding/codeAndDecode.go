@@ -20,7 +20,7 @@ type ElevatorStatus struct {
 type BackupMsg struct {
 	Elevators map[string]ElevatorStatus
 	LatestOrder ordStruct.ButtonEvent
-	number    int
+	Number    int
 }
 
 func DecodeElevatorMsg(str string) (outMsg ElevatorMsg) {

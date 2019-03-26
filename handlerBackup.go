@@ -2,6 +2,8 @@ package main
 
 import (
 	"./network/bcast"
+	"./MakkerModul/connector"
+	"./MakkerModul/decoding"
 	//"./network/localip"
 	"./network/idGenerator"
 	"./network/peers"
@@ -49,7 +51,7 @@ func main() {
 	go bcast.Receiver(16569, helloRx)
 
 	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
-		                          "mockMaster.go", 55555, 44444)
+		                          "Tester/mockMaster.go", 33333, 22222)
 
 	// The example message. We just send one of these every second.
 	/*go func() {
@@ -112,14 +114,23 @@ func main() {
 			fmt.Println("#####################################")
 
 		case a := <-helloRx:
-			if a.Id != "MASTER" {
+			if !strings.HasPrefix(a.Id,"Backup") {
+				fmt.Println("HelloRx Id: ",a.Id)
 				fmt.Printf("Received from: %#v\n", a.Id)
-				elevMap[a.Id] = a.States
+				elevMap[a.Id] = decoding.ElevatorStatus{E:a.States}
 				latestOrder := a.States.CheckLatestOrder()
-				backupMsg := decoding.BackupMsg{Elevators: elevMap,LatestOrder: latestOrder Number: 1}
+				if (latestOrder.Floor == -1) {
+					break
+				}
+				fmt.Println("Latest Button: ",int(latestOrder.Button),"Latest Floor: ", latestOrder.Floor)
+				backupMsg := decoding.BackupMsg{Elevators: elevMap,LatestOrder: latestOrder, Number: 1}
 				msgChanLocal <- decoding.EncodeBackupMsg(backupMsg)
 			}
 		case a := <-receiveLocal:
-			helloTx <- 
+			msg := decoding.DecodeElevatorMsg(a)
+			fmt.Println("From Master to Elevators")
+			helloTx <- MsgFromHandlerToHandler{Id: msg.E.ID}
+	
+		}
 	}
 }
