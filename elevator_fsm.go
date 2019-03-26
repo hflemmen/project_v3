@@ -6,15 +6,26 @@ import (
 	"./orders"
 	"./orders/elevio"
 	"./orders/elevio/ordStruct"
+	"flag"
 	"fmt"
 	"time"
 )
 
 func main() {
 	fmt.Println("Starting elevator")
-	numFloors := 4
+	floors := flag.Int("floors", 4, "number of floors")
+	port := flag.Int("port", 15657, "number of floors")
+	flag.Parse()
+	numFloors := *floors
 
-	elevio.Init("localhost:15657", numFloors)
+	if numFloors == 0 {
+		numFloors = 4
+	}
+	if *port == 0 {
+		*port = 15657
+	}
+
+	elevio.Init(fmt.Sprintf("localhost:%v", *port), numFloors)
 	e := ordStruct.ElevatorInit("elev", numFloors)
 	states := make(chan ordStruct.Elevator)
 	//elevio.SetMotorDirection(d)
