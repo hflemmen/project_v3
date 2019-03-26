@@ -3,11 +3,11 @@ package main
 import (
 	"./network/bcast"
 	//"./network/localip"
+	"./network/idGenerator"
 	"./network/peers"
 	"./orders/elevio/ordStruct"
 	"flag"
 	"fmt"
-	"math/rand"
 	//"os"
 	//"strconv"
 	"strings"
@@ -23,18 +23,10 @@ type MsgFromHandlerToHandler struct {
 	Number int
 }
 
-func getRandomID() string {
-	rand.Seed(time.Now().UTC().UnixNano())
-	buf := make([]byte, 8)
-	for i, _ := range buf {
-		buf[i] = byte(48 + rand.Intn(122-48))
-	}
-
-	return "C{" + string(buf[:]) + "}"
-}
 func main() {
+	time.Sleep(time.Millisecond) //kun så time er brukt
 	var id string
-	idCode := getRandomID()
+	idCode := idGenerator.GetRandomID()
 	fmt.Printf("#####################################\nStarting a backup with idCode %v \n#####################################\n", idCode)
 
 	flag.StringVar(&id, "id", "Backup - ", "id of this peer")
