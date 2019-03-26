@@ -25,6 +25,7 @@ type MsgFromHandlerToHandler struct {
 
 func main() {
 	time.Sleep(time.Millisecond) //kun så time er brukt
+	elevMap := make(map[string]decoding.ElevatorStatus)
 	var myName string
 	flag.StringVar(&myName, "name", "", "id of this peer")
 	flag.Parse()
@@ -47,6 +48,9 @@ func main() {
 	go bcast.Transmitter(16569, helloTx)
 	go bcast.Receiver(16569, helloRx)
 
+	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
+		                          "mockMaster.go", 55555, 44444)
+
 	// The example message. We just send one of these every second.
 	/*go func() {
 		helloMsg := MsgFromHandlerToHandler{Id: "MASTER", Number: 0}
@@ -66,9 +70,10 @@ func main() {
 					nonElevatorPeers = append(nonElevatorPeers, peer)
 				}
 			}
+			fmt.Println("Non elevator peers:", nonElevatorPeers)
 		sw:
 			switch {
-			case len(nonElevatorPeers) == 1:
+			case len(nonElevatorPeers) <= 1:
 				if strings.HasPrefix(id, "MASTER") {
 					id = "Backup - " + myName
 					terminateTransmitter <- true
@@ -109,9 +114,13 @@ func main() {
 		case a := <-helloRx:
 			if a.Id != "MASTER" {
 				fmt.Printf("Received from: %#v\n", a.Id)
-				msg := MsgFromHandlerToHandler{Id: "MASTER", States: a.States, Number: 1}
-				helloTx <- msg
+				elevMap[a.Id] = a.States
+				msg := decoding.BackupMsg{Elevators: elevMap, Number: 1}
+				msgChanLocal <- decoding.EncodeBackupMsg(decoding.)
 			}
-		}
+		case a := <-receiveLocal:
+
+		
+
 	}
 }
