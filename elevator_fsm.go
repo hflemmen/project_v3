@@ -17,7 +17,7 @@ func main() {
 	e := ordStruct.ElevatorInit("elev", numFloors)
 	states := make(chan ordStruct.Elevator)
 	//elevio.SetMotorDirection(d)
-	
+
 	newButton := make(chan ordStruct.ButtonEvent)
 	newOrders := make(chan ordStruct.ButtonEvent)
 	floorArrivals := make(chan int)
@@ -31,8 +31,9 @@ func main() {
 }
 
 func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
-	floorArrivals <-chan int, states chan ordStruct.Elevator, updateLights <-chan ordStruct.LightType,
-	newButton <-chan ordStruct.ButtonEvent) {
+	floorArrivals <-chan int, states chan ordStruct.Elevator,
+	updateLights <-chan ordStruct.LightType, newButton <-chan ordStruct.ButtonEvent) {
+
 	var doorTimer <-chan time.Time
 	f := elevio.GetFloor()
 	if f == -1 {
@@ -46,6 +47,8 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 	}
 	states <- e
 	for {
+		prevElevator := e
+	sel:
 		select {
 		case a := <-newButton:
 			switch e.Behaviour {
@@ -80,7 +83,6 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					}
 				}
 			}
-			states <- e.Duplicate()
 		case a := <-newOrders:
 			switch e.Behaviour {
 			case ordStruct.E_Idle:
@@ -102,6 +104,7 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 				e.Order[a.Button][a.Floor] = true
 				if a.Button == ordStruct.BT_Cab {
 					elevio.SetButtonLamp(ordStruct.BT_Cab, a.Floor, true)
+					break sel
 				}
 
 			case ordStruct.E_DoorOpen:
@@ -113,6 +116,9 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 						elevio.SetButtonLamp(ordStruct.BT_Cab, a.Floor, true)
 					}
 				}
+			}
+			if prevElevator != e {
+				states <- e.Duplicate()
 			}
 		case a := <-floorArrivals:
 			e.Floor = a
@@ -133,13 +139,16 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 			case ordStruct.E_DoorOpen:
 				//nothing
 			}
-			states <- e
+			if e != prevElevator {
+				states <- e.Duplicate()
+			}
 		case <-doorTimer:
+			fmt.Println("TIMER")
 			switch e.Behaviour {
 			case ordStruct.E_Idle:
-				//nothing
+				fallthrough
 			case ordStruct.E_Moving:
-				//nothing
+				fallthrough
 			case ordStruct.E_DoorOpen:
 				e.Dir = orders.ChooseDirection(e)
 				elevio.SetDoorOpenLamp(false)
@@ -166,12 +175,13 @@ func message_handler(receive <-chan string, msgChan chan<- string,
 		select {
 		case a := <-receive:
 			msg := decoding.DecodeElevatorMsg(a)
-			msg.E.ID += " ELEVATOR"
-			fmt.Println(msg.E.ID)
 			buttons, floors := msgToHandler.E.Differences(msg.E)
-			for i := 0; i < len(buttons); i++ {
-				newOrders <- ordStruct.ButtonEvent{Floor: floors[i],
-					Button: ordStruct.ButtonType(buttons[i])}
+			//fmt.Println("Legger til ", floors)
+			for i, _ := range buttons {
+				newOrders <- ordStruct.ButtonEvent{
+					Floor:  floors[i],
+					Button: ordStruct.ButtonType(buttons[i]),
+				}
 			}
 			if msg.Number > msgToHandler.Number {
 				msgToHandler.Number = msg.Number
