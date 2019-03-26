@@ -12,8 +12,6 @@ type ElevatorMsg struct {
 }
 
 
-
-
 func DecodeElevatorMsg(str string) (outMsg ElevatorMsg) {
 	json.Unmarshal([]byte(str), &outMsg)
 	return

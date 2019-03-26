@@ -142,7 +142,7 @@ func main() {
 				if msg.Number >= H.MsgFromElev.Number { // > ikke >= etter testing??
 					H.MsgFromElev = msg
 					if H.RelationMaster != Disconnected {
-						H.MsgToMaster.States = H.MsgFromElev.States
+						H.MsgToMaster.States = H.MsgFromElev.E
 						H.MsgToMaster.Number++
 						pendingUpdates <- "To MASTER"
 					} else {

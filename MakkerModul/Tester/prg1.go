@@ -1,15 +1,13 @@
 package main
 
 import (
-	"./connector"
-	"./decoding"
+	"../connector"
+	//"../decoding"
 	"fmt"
 	"time"
 )
 
 func main() {
-	var message decoding.Msg
-	_ = message
 
 	fmt.Println("Program start! 'prg1.go'")
 
