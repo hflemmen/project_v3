@@ -56,8 +56,10 @@ func (msg *BackupMsg) ChooseElevator(button ordStruct.ButtonType, floor int) str
 		}
         i++
 	}
-	elev := msg.Elevators[elevator_id]
-    elev.E.Order[int(button)][floor] = true
-    msg.Elevators[elevator_id] = elev
+	if (msg.Elevators != nil) {
+		elev := msg.Elevators[elevator_id]
+		elev.E.Order[int(button)][floor] = true
+		msg.Elevators[elevator_id] = elev
+	}
 	return elevator_id
 }

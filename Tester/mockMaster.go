@@ -4,7 +4,7 @@ import (
 	//"../orders/elevio/ordStruct"
 	"../MakkerModul/connector"
 	"../MakkerModul/decoding"
-	"../cost"
+	//"../cost"
 	"fmt"
 	//"os"
 	//"time"
@@ -40,7 +40,8 @@ func main() {
 			msg := decoding.DecodeBackupMsg(a)
 			elevId := msg.ChooseElevator(msg.LatestOrder.Button,msg.LatestOrder.Floor)
 			elevStatus := msg.Elevators[elevId]
-			elevStatus.E.LightMatrix[int(msg.LatestOrder.Button)][msg.LatestOrder.Floor] = true
+			e := elevStatus.E
+			e.LightMatrix[int(msg.LatestOrder.Button)][msg.LatestOrder.Floor] = true
 			e.PrintLightMatrix()
 			e.ID = elevId
 			msg2 := decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E:e})

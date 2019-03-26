@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"strings"
 )
 
 type relationship int
@@ -106,17 +105,13 @@ func main() {
 	for {
 		select {
 		case p := <-peerUpdateCh:
-			if strings.HasPrefix(p.New,"Backup") { //p.New == "MASTER" {
-				fmt.Printf("Connected to master \n")
-				H.RelationMaster = PendingUpdates
-			}
 			for _, name := range p.Lost {
 				if strings.HasPrefix(name,"Backup"){ //"MASTER" {
 					fmt.Println("LOST CONNECTION TO MASTER")
 					H.RelationMaster = Disconnected
 				}
 			}
-			if strings.HasPrefix(p.New, "MASTER") {
+			if strings.HasPrefix(p.New, "Backup") {
 				fmt.Printf("Connected to master \n")
 				H.RelationMaster = Connected
 			}
