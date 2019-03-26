@@ -17,7 +17,7 @@ func main() {
 	e := ordStruct.ElevatorInit("elev", numFloors)
 	states := make(chan ordStruct.Elevator)
 	//elevio.SetMotorDirection(d)
-
+	
 	newButton := make(chan ordStruct.ButtonEvent)
 	newOrders := make(chan ordStruct.ButtonEvent)
 	floorArrivals := make(chan int)
