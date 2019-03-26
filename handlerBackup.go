@@ -66,6 +66,7 @@ func main() {
 					nonElevatorPeers = append(nonElevatorPeers, peer)
 				}
 			}
+			fmt.Println("Non elevator peers:", nonElevatorPeers)
 		sw:
 			switch {
 			case len(nonElevatorPeers) <= 1:
