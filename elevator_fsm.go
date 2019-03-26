@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	fmt.Println("Starting elevator")
 	numFloors := 4
 
 	elevio.Init("localhost:15657", numFloors)
@@ -143,7 +144,7 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 				states <- e.Duplicate()
 			}
 		case <-doorTimer:
-			fmt.Println("TIMER")
+
 			switch e.Behaviour {
 			case ordStruct.E_Idle:
 				fallthrough
