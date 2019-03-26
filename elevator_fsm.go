@@ -83,6 +83,9 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					}
 				}
 			}
+			if e != prevElevator {
+				states <- e.Duplicate()
+			}
 		case a := <-newOrders:
 			switch e.Behaviour {
 			case ordStruct.E_Idle:
@@ -116,9 +119,6 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 						elevio.SetButtonLamp(ordStruct.BT_Cab, a.Floor, true)
 					}
 				}
-			}
-			if prevElevator != e {
-				states <- e.Duplicate()
 			}
 		case a := <-floorArrivals:
 			e.Floor = a
@@ -159,7 +159,9 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					e.Behaviour = ordStruct.E_Moving
 				}
 			}
-			states <- e
+			if prevElevator != e {
+				states <- e.Duplicate()
+			}
 		case a := <-updateLights:
 			e.LightMatrix = a
 			orders.UpdateLights(e)
