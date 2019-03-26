@@ -11,8 +11,16 @@ type ElevatorMsg struct {
 	Number int
 }
 
+type ElevatorStatus struct {
+	E              ordStruct.Elevator
+	PendingUpdates bool
+	CostValue      int
+}
 
-
+type BackupMsg struct {
+	Elevators map[string]ElevatorStatus
+	number    int
+}
 
 func DecodeElevatorMsg(str string) (outMsg ElevatorMsg) {
 	json.Unmarshal([]byte(str), &outMsg)
@@ -23,7 +31,7 @@ func EncodeElevatorMsg(msg ElevatorMsg) string {
 	bytes, _ := json.Marshal(msg)
 	return string(bytes)
 }
-/*
+
 func DecodeBackupMsg(str string) (outMsg BackupMsg) {
 	json.Unmarshal([]byte(str), &outMsg)
 	return
@@ -33,4 +41,3 @@ func EncodeBackupMsg(msg BackupMsg) string {
 	bytes, _ := json.Marshal(msg)
 	return string(bytes)
 }
-*/

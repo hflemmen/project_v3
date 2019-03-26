@@ -21,6 +21,14 @@ const (
 	Disconnected              = 0
 )
 
+type pendingType int
+
+const (
+	FromMsgHandler pendingType = 2
+	FromMaster                 = 1
+	ToMaster                   = 0
+)
+
 type MsgHandler struct {
 	MyElevStates ordStruct.Elevator
 	MsgToElev    decoding.ElevatorMsg
@@ -35,7 +43,6 @@ type MsgHandler struct {
 
 type MsgFromHandlerToHandler struct {
 	Id     string
-	ElevId string
 	States ordStruct.Elevator
 	Number int
 }
@@ -43,7 +50,7 @@ type MsgFromHandlerToHandler struct {
 func main() {
 	H := MsgHandler{MsgFromElev: decoding.ElevatorMsg{Number: -1},
 		RelationElevator: Disconnected, RelationMaster: Disconnected}
-	pendingUpdates := make(chan string)
+	pendingUpdates := make(chan pendingType)
 	var myName string
 
 	flag.StringVar(&myName, "name", "", "id of this peer")
@@ -93,11 +100,11 @@ func main() {
 	go func() {
 		for update := range pendingUpdates {
 			switch update {
-			case "From myself":
+			case FromMsgHandler:
 				msgChanLocal <- decoding.EncodeElevatorMsg(H.MsgToElev)
-			case "From MASTER":
+			case FromMaster:
 				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E: H.MsgFromMaster.States})
-			case "To MASTER":
+			case ToMaster:
 				repeatTx <- H.MsgToMaster
 			}
 		}
@@ -107,55 +114,57 @@ func main() {
 		select {
 		case p := <-peerUpdateCh:
 			for _, name := range p.Lost {
-				if strings.HasPrefix(name,"Backup"){ //"MASTER" {
+				if strings.HasPrefix(name, "MASTER") {
 					fmt.Println("LOST CONNECTION TO MASTER")
 					H.RelationMaster = Disconnected
 				}
 			}
-			if strings.HasPrefix(p.New, "Backup") {
+			if strings.HasPrefix(p.New, "MASTER") {
 				fmt.Printf("Connected to master \n")
 				H.RelationMaster = Connected
 			}
 
 		case a := <-netRx:
-			if strings.HasPrefix(a.Id, "Backup") {
+			if strings.HasPrefix(a.Id, "MASTER") {
 				fmt.Printf("Received from (not local) %v\n", a.Id)
-				if a.ElevId == id {
-					a.States.Order[0] = a.States.LightMatrix[0]
-					a.States.Order[1] = a.States.LightMatrix[1]
-				}
+				a.States.Order[0] = a.States.LightMatrix[0]
+				a.States.Order[1] = a.States.LightMatrix[1]
 				H.MsgFromMaster.States = a.States
-				pendingUpdates <- "From MASTER"
+				pendingUpdates <- FromMaster
 			}
 
 		case a := <-receiveLocal:
 			switch a {
 			case "Connection lost":
-				H.MsgToElev = H.MsgFromElev
+				if H.MsgFromElev.Number > 0 {
+					H.MsgToElev = H.MsgFromElev
+				}
 				H.RelationElevator = Crashed
+				pendingUpdates <- FromMsgHandler
 			case "Connection established":
 				if H.RelationElevator == Disconnected {
 					H.RelationElevator = Connected
-					pendingUpdates <- "From myself"
+					pendingUpdates <- FromMsgHandler
+					pendingUpdates <- FromMaster
 				}
 			default:
 				msg := decoding.DecodeElevatorMsg(a)
-				if msg.Number >= H.MsgFromElev.Number { // > ikke >= etter testing??
+				if msg.Number > H.MsgFromElev.Number { // > ikke >= etter testing??
 					H.MsgFromElev = msg
 					if H.RelationMaster != Disconnected {
-						H.MsgToMaster.States = H.MsgFromElev.E
+						H.MsgToMaster.States = msg.E
 						H.MsgToMaster.Number++
-						pendingUpdates <- "To MASTER"
+						pendingUpdates <- ToMaster
 					} else {
 						H.MsgToElev = H.MsgFromElev
 						H.MsgToElev.E.Order[0] = H.MsgToElev.E.LightMatrix[0]
 						H.MsgToElev.E.Order[1] = H.MsgToElev.E.LightMatrix[1]
-						pendingUpdates <- "From myself"
+						pendingUpdates <- FromMsgHandler
 					}
 					H.MyElevStates = msg.E
 				} else {
 					H.RelationElevator = Crashed
-					pendingUpdates <- "From myself"
+					pendingUpdates <- FromMsgHandler
 				}
 				H.RelationElevator = Connected
 			}

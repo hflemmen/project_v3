@@ -76,10 +76,24 @@ func sendLocal(port int, tx chan string) {
 func EstablishLocalTunnel(partnerName string, rxPort int, txPort int) (chan string, chan string) {
 	msgChan := make(chan string)
 
+	msgChanSendAndRepeat := make(chan string)
+
+	go func() {
+		var currentMsg string
+		for {
+			select {
+			case a := <-msgChanSendAndRepeat:
+				currentMsg = a
+			case <-time.After(20 * time.Millisecond):
+				msgChan <- currentMsg
+			}
+		}
+	}()
+
 	go sendLocal(txPort, msgChan)
 	go func() {
 		for {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(20 * time.Millisecond)
 			msgChan <- "I'm alive!"
 		}
 	}()
@@ -89,7 +103,8 @@ func EstablishLocalTunnel(partnerName string, rxPort int, txPort int) (chan stri
 
 	go listenLocal(rxPort, receive, partnerAliveCh)
 	go keepAlive(partnerName, receive, partnerAliveCh)
-	return receive, msgChan
+
+	return receive, msgChanSendAndRepeat
 }
 
 func keepAlive(partnerName string, rx chan string, parnerAliveCh chan bool) {
