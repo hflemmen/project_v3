@@ -1,10 +1,10 @@
 package main
 
 import (
-	"./network/bcast"
-	"./network/localip"
-	"./network/peers"
-	"./orders/elevio/ordStruct"
+	"../network/bcast"
+	"../network/localip"
+	"../network/peers"
+	"../orders/elevio/ordStruct"
 	"flag"
 	"fmt"
 	"os"
