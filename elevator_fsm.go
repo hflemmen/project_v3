@@ -22,12 +22,12 @@ func main() {
 	newOrders := make(chan ordStruct.ButtonEvent)
 	floorArrivals := make(chan int)
 	updateLights := make(chan ordStruct.LightType)
-	receiveLocal,msgChanLocal := connector.EstablishLocalTunnel(
-		                         "msgHandler.go",44444,55555)
-	go elevio.PollButtons(newButton,newOrders)
+	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
+		"msgHandler.go", 44444, 55555)
+	go elevio.PollButtons(newButton, newOrders)
 	go elevio.PollFloorSensor(floorArrivals)
-	go message_handler(receiveLocal, msgChanLocal, newOrders, states,updateLights)
-	elevator_fsm(e, newOrders, floorArrivals, states,updateLights,newButton)
+	go message_handler(receiveLocal, msgChanLocal, newOrders, states, updateLights)
+	elevator_fsm(e, newOrders, floorArrivals, states, updateLights, newButton)
 }
 
 func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
@@ -56,18 +56,17 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					e.Behaviour = ordStruct.E_DoorOpen
 				} else {
 					if a.Button == ordStruct.BT_Cab {
-						e.Order[a.Button][a.Floor] = 1
+						e.Order[a.Button][a.Floor] = true
 					} else {
-						e.LightMatrix[a.Button][a.Floor] = 1
+						e.LightMatrix[a.Button][a.Floor] = true
 					}
 				}
 
-
 			case ordStruct.E_Moving:
 				if a.Button == ordStruct.BT_Cab {
-						e.Order[a.Button][a.Floor] = 1
+					e.Order[a.Button][a.Floor] = true
 				} else {
-						e.LightMatrix[a.Button][a.Floor] = 1
+					e.LightMatrix[a.Button][a.Floor] = true
 				}
 
 			case ordStruct.E_DoorOpen:
@@ -75,9 +74,9 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					doorTimer = time.After(ordStruct.DOOR_OPEN_TIME)
 				} else {
 					if a.Button == ordStruct.BT_Cab {
-						e.Order[a.Button][a.Floor] = 1
+						e.Order[a.Button][a.Floor] = true
 					} else {
-						e.LightMatrix[a.Button][a.Floor] = 1
+						e.LightMatrix[a.Button][a.Floor] = true
 					}
 				}
 			}
@@ -90,9 +89,9 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					doorTimer = time.After(ordStruct.DOOR_OPEN_TIME)
 					e.Behaviour = ordStruct.E_DoorOpen
 				} else {
-					e.Order[a.Button][a.Floor] = 1
+					e.Order[a.Button][a.Floor] = true
 					if a.Button == ordStruct.BT_Cab {
-						elevio.SetButtonLamp(ordStruct.BT_Cab,a.Floor,true)
+						elevio.SetButtonLamp(ordStruct.BT_Cab, a.Floor, true)
 					}
 					e.Dir = orders.ChooseDirection(e)
 					elevio.SetMotorDirection(e.Dir)
@@ -100,18 +99,18 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 				}
 
 			case ordStruct.E_Moving:
-				e.Order[a.Button][a.Floor] = 1
+				e.Order[a.Button][a.Floor] = true
 				if a.Button == ordStruct.BT_Cab {
-					elevio.SetButtonLamp(ordStruct.BT_Cab,a.Floor,true)
+					elevio.SetButtonLamp(ordStruct.BT_Cab, a.Floor, true)
 				}
 
 			case ordStruct.E_DoorOpen:
 				if e.Floor == a.Floor {
 					doorTimer = time.After(ordStruct.DOOR_OPEN_TIME)
 				} else {
-					e.Order[a.Button][a.Floor] = 1
+					e.Order[a.Button][a.Floor] = true
 					if a.Button == ordStruct.BT_Cab {
-						elevio.SetButtonLamp(ordStruct.BT_Cab,a.Floor,true)
+						elevio.SetButtonLamp(ordStruct.BT_Cab, a.Floor, true)
 					}
 				}
 			}
