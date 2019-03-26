@@ -22,6 +22,7 @@ import (
 */
 type MsgFromHandlerToHandler struct {
 	Id     string
+	ElevId string
 	States ordStruct.Elevator
 	Number int
 }
@@ -30,7 +31,7 @@ func main() {
 	time.Sleep(time.Millisecond) //kun så time er brukt
 	elevMap := make(map[string]cost.ElevatorStatus)
 	ElevatorMap := cost.ElevMap{Elevators: elevMap}
-	prevElevatorMap := ElevatorMap
+	//prevElevatorMap := ElevatorMap
 	var elevId string
 	var myName string
 	flag.StringVar(&myName, "name", "", "id of this peer")
@@ -131,8 +132,8 @@ func main() {
 				elevId = ElevatorMap.ChooseElevator(latestOrder.Button, latestOrder.Floor)
 				elevStatus := ElevatorMap.Elevators[elevId]
 				elevStatus.E.LightMatrix[int(latestOrder.Button)][latestOrder.Floor] = true
-				elevStatus.E.PrintLightMatrix()
-				helloTx <- MsgFromHandlerToHandler{Id: elevId,States: elevStatus.E}
+				fmt.Println("This is the Id from cost function: ",elevId)
+				helloTx <- MsgFromHandlerToHandler{Id: id,ElevId: elevId,States: elevStatus.E}
 			}
 		}
 	}

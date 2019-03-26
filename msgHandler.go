@@ -35,6 +35,7 @@ type MsgHandler struct {
 
 type MsgFromHandlerToHandler struct {
 	Id     string
+	ElevId string
 	States ordStruct.Elevator
 	Number int
 }
@@ -119,7 +120,7 @@ func main() {
 		case a := <-netRx:
 			if strings.HasPrefix(a.Id, "Backup") {
 				fmt.Printf("Received from (not local) %v\n", a.Id)
-				if a.Id == id {
+				if a.ElevId == id {
 					a.States.Order[0] = a.States.LightMatrix[0]
 					a.States.Order[1] = a.States.LightMatrix[1]
 				}
@@ -142,7 +143,7 @@ func main() {
 				if msg.Number >= H.MsgFromElev.Number { // > ikke >= etter testing??
 					H.MsgFromElev = msg
 					if H.RelationMaster != Disconnected {
-						H.MsgToMaster.States = H.MsgFromElev.States
+						H.MsgToMaster.States = H.MsgFromElev.E
 						H.MsgToMaster.Number++
 						pendingUpdates <- "To MASTER"
 					} else {
