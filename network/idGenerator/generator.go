@@ -12,5 +12,5 @@ func GetRandomID() string {
 		buf[i] = byte(97 + rand.Intn(123-97))
 	}
 
-	return "C{" + string(buf[:]) + "}"
+	return string(buf[:])
 }
