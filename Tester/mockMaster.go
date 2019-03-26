@@ -11,10 +11,6 @@ import (
 	//"math/rand"
 )
 
-// We define some custom struct to send over the network.
-// Note that all members we want to transmit must be public. Any private members
-//  will be received as zero-values.
-
 func main() {
 	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel("../handlerBackup.go", 22222, 33333)
 	/*

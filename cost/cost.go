@@ -11,6 +11,15 @@ import (
 const TRAVEL_TIME = 2
 const DOOR_OPEN_TIME = 3
 
+type ElevatorStatus struct {
+    E              ordStruct.Elevator
+    PendingUpdates bool
+    CostValue      int
+}
+type ElevMap struct {
+    Elevators map[string]ElevatorStatus
+}
+
 
 func TimeToServeRequest(e_old ordStruct.Elevator, button ordStruct.ButtonType, floor int) int {
     e := e_old
@@ -56,6 +65,27 @@ func ClearOrdersAtCurrentFloorCost(e ordStruct.Elevator) ordStruct.Elevator {
 		}
 	}
 	return e2;
+}
+func (elevMap *ElevMap) ChooseElevator(button ordStruct.ButtonType, floor int) string {
+    minimum := 0
+    i := 0 // use i to tell us if it's the first time iterating
+    var elevator_id string 
+    for elevator_ID,elevator_status := range elevMap.Elevators{
+        temp :=  TimeToServeRequest(elevator_status.E, button, floor)
+        if i == 0 || temp < minimum {
+                minimum = temp
+                elevator_id = elevator_ID
+        }
+        i++
+    }
+    /*
+    if (elevMap.Elevators != nil) {
+        elev := elevMap.Elevators[elevator_id]
+        elev.E.Order[int(button)][floor] = true
+        elevMap.Elevators[elevator_id] = elev
+    }
+    */
+    return elevator_id
 }
 
 

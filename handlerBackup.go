@@ -2,12 +2,13 @@ package main
 
 import (
 	"./network/bcast"
-	"./MakkerModul/connector"
-	"./MakkerModul/decoding"
+	//"./MakkerModul/connector"
+	//"./MakkerModul/decoding"
 	//"./network/localip"
 	"./network/idGenerator"
 	"./network/peers"
 	"./orders/elevio/ordStruct"
+	"./cost"
 	"flag"
 	"fmt"
 	//"os"
@@ -27,7 +28,10 @@ type MsgFromHandlerToHandler struct {
 
 func main() {
 	time.Sleep(time.Millisecond) //kun så time er brukt
-	elevMap := make(map[string]decoding.ElevatorStatus)
+	elevMap := make(map[string]cost.ElevatorStatus)
+	ElevatorMap := cost.ElevMap{Elevators: elevMap}
+	prevElevatorMap := ElevatorMap
+	var elevId string
 	var myName string
 	flag.StringVar(&myName, "name", "", "id of this peer")
 	flag.Parse()
@@ -49,10 +53,10 @@ func main() {
 	helloRx := make(chan MsgFromHandlerToHandler)
 	go bcast.Transmitter(16569, helloTx)
 	go bcast.Receiver(16569, helloRx)
-
+	/*
 	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
 		                          "Tester/mockMaster.go", 33333, 22222)
-
+	*/
 	// The example message. We just send one of these every second.
 	/*go func() {
 		helloMsg := MsgFromHandlerToHandler{Id: "MASTER", Number: 0}
@@ -117,20 +121,19 @@ func main() {
 			if !strings.HasPrefix(a.Id,"Backup") {
 				fmt.Println("HelloRx Id: ",a.Id)
 				fmt.Printf("Received from: %#v\n", a.Id)
-				elevMap[a.Id] = decoding.ElevatorStatus{E:a.States}
+				ElevatorMap.Elevators[a.Id] = cost.ElevatorStatus{E:a.States}
 				latestOrder := a.States.CheckLatestOrder()
 				if (latestOrder.Floor == -1) {
 					break
 				}
 				fmt.Println("Latest Button: ",int(latestOrder.Button),"Latest Floor: ", latestOrder.Floor)
-				backupMsg := decoding.BackupMsg{Elevators: elevMap,LatestOrder: latestOrder, Number: 1}
-				msgChanLocal <- decoding.EncodeBackupMsg(backupMsg)
+				fmt.Println("New OrderUpdate Master")
+				elevId = ElevatorMap.ChooseElevator(latestOrder.Button, latestOrder.Floor)
+				elevStatus := ElevatorMap.Elevators[elevId]
+				elevStatus.E.LightMatrix[int(latestOrder.Button)][latestOrder.Floor] = true
+				elevStatus.E.PrintLightMatrix()
+				helloTx <- MsgFromHandlerToHandler{Id: elevId,States: elevStatus.E}
 			}
-		case a := <-receiveLocal:
-			msg := decoding.DecodeElevatorMsg(a)
-			fmt.Println("From Master to Elevators")
-			helloTx <- MsgFromHandlerToHandler{Id: msg.E.ID}
-	
 		}
 	}
 }

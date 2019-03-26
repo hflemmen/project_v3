@@ -119,8 +119,10 @@ func main() {
 		case a := <-netRx:
 			if strings.HasPrefix(a.Id, "Backup") {
 				fmt.Printf("Received from (not local) %v\n", a.Id)
-				a.States.Order[0] = a.States.LightMatrix[0]
-				a.States.Order[1] = a.States.LightMatrix[1]
+				if a.Id == id {
+					a.States.Order[0] = a.States.LightMatrix[0]
+					a.States.Order[1] = a.States.LightMatrix[1]
+				}
 				H.MsgFromMaster.States = a.States
 				pendingUpdates <- "From MASTER"
 			}
@@ -140,7 +142,7 @@ func main() {
 				if msg.Number >= H.MsgFromElev.Number { // > ikke >= etter testing??
 					H.MsgFromElev = msg
 					if H.RelationMaster != Disconnected {
-						H.MsgToMaster.States = msg.E
+						H.MsgToMaster.States = H.MsgFromElev.States
 						H.MsgToMaster.Number++
 						pendingUpdates <- "To MASTER"
 					} else {
