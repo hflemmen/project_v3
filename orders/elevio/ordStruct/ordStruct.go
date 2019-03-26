@@ -125,6 +125,7 @@ func (e *Elevator)CheckLatestOrder()(ButtonEvent) {
 	return ButtonEvent{Floor: -1}
 }
 
+
 /*
 func (e *Elevator) LightUpdate(button ButtonType,floor int, on bool, receiverLights chan<- LightEvent){
 	if button == BT_Cab {

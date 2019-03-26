@@ -28,7 +28,13 @@ func orderBelow(e Elevator) bool {
 func ChooseDirection(e Elevator) MotorDirection {
 	switch e.Dir {
 	case MD_Down:
-		fallthrough
+		if orderBelow(e) {
+			return MD_Down
+		} else if orderAbove(e) {
+			return MD_Up
+		} else {
+			return MD_Stop
+		}
 	case MD_Up:
 		if orderAbove(e) {
 			return MD_Up

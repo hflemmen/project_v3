@@ -134,6 +134,7 @@ func keepAlive(partnerName string, rx chan string, parnerAliveCh chan bool) {
 }
 
 func startProgram(name string) {
+	fmt.Println("Starting ", name)
 	if !strings.HasSuffix(name, ".go") {
 		name = name + ".go"
 	}

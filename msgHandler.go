@@ -9,6 +9,7 @@ import (
 	"./orders/elevio/ordStruct"
 	"flag"
 	"fmt"
+	"strings"
 	"time"
 	"strings"
 )
@@ -16,10 +17,9 @@ import (
 type relationship int
 
 const (
-	Crashed        relationship = 2
-	PendingUpdates              = 1
-	UpToDate                    = 0
-	Disconnected                = -1
+	Crashed      relationship = 2
+	Connected                 = 1
+	Disconnected              = 0
 )
 
 type MsgHandler struct {
@@ -43,7 +43,9 @@ type MsgFromHandlerToHandler struct {
 func main() {
 	H := MsgHandler{MsgFromElev: decoding.ElevatorMsg{Number: -1},
 		RelationElevator: Disconnected, RelationMaster: Disconnected}
+	pendingUpdates := make(chan string)
 	var myName string
+
 	flag.StringVar(&myName, "name", "", "id of this peer")
 	flag.Parse()
 
@@ -63,29 +65,21 @@ func main() {
 	go peers.Transmitter(15647, id, peerTxEnable, peerTxEnable)
 	go peers.Receiver(15647, peerUpdateCh)
 
-	helloTx := make(chan MsgFromHandlerToHandler)
-	helloRx := make(chan MsgFromHandlerToHandler)
+	netTx := make(chan MsgFromHandlerToHandler)
+	netRx := make(chan MsgFromHandlerToHandler)
 	repeatTx := make(chan MsgFromHandlerToHandler)
-	go bcast.Transmitter(16569, helloTx)
-	go bcast.Receiver(16569, helloRx)
+	go bcast.Transmitter(16569, netTx)
+	go bcast.Receiver(16569, netRx)
 
 	go func() {
 		for a := range repeatTx {
 			for i := 0; i < 5; i++ {
-				helloTx <- a
+				netTx <- a
 				fmt.Println(a.Number)
 			}
 		}
 	}()
 
-	go func() {
-		//helloMsg := MsgFromHandlerToHandler{Id: "I'm elevator msgHandler", Number: 0}
-		for {
-			//helloMsg.Number++
-			//helloTx <- helloMsg
-			time.Sleep(time.Second)
-		}
-	}()
 	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
 		"elevator_fsm.go", 55555, 44444)
 	printStatus := make(chan bool)
@@ -93,6 +87,19 @@ func main() {
 		for {
 			time.Sleep(time.Second)
 			printStatus <- true
+		}
+	}()
+
+	go func() {
+		for update := range pendingUpdates {
+			switch update {
+			case "From myself":
+				msgChanLocal <- decoding.EncodeElevatorMsg(H.MsgToElev)
+			case "From MASTER":
+				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E: H.MsgFromMaster.States})
+			case "To MASTER":
+				repeatTx <- H.MsgToMaster
+			}
 		}
 	}()
 
@@ -109,15 +116,18 @@ func main() {
 					H.RelationMaster = Disconnected
 				}
 			}
+			if strings.HasPrefix(p.New, "MASTER") {
+				fmt.Printf("Connected to master \n")
+				H.RelationMaster = Connected
+			}
 
-		case a := <-helloRx:
-			if  strings.HasPrefix(a.Id,"Backup"){ //a.Id == "MASTER" {
+		case a := <-netRx:
+			if strings.HasPrefix(a.Id, "Backup") {
 				fmt.Printf("Received from (not local) %v\n", a.Id)
-				if a.States.ID == id { // my order to execute
-					a.States.Order[0] = a.States.LightMatrix[0]
-					a.States.Order[1] = a.States.LightMatrix[1]
-				}			
-				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E: a.States})
+				a.States.Order[0] = a.States.LightMatrix[0]
+				a.States.Order[1] = a.States.LightMatrix[1]
+				H.MsgFromMaster.States = a.States
+				pendingUpdates <- "From MASTER"
 			}
 
 		case a := <-receiveLocal:
@@ -127,30 +137,29 @@ func main() {
 				H.RelationElevator = Crashed
 			case "Connection established":
 				if H.RelationElevator == Disconnected {
-					H.RelationElevator = PendingUpdates
+					H.RelationElevator = Connected
+					pendingUpdates <- "From myself"
 				}
 			default:
 				msg := decoding.DecodeElevatorMsg(a)
-				msg.E.ID += " MsgHandler"
 				if msg.Number >= H.MsgFromElev.Number { // > ikke >= etter testing??
 					H.MsgFromElev = msg
 					if H.RelationMaster != Disconnected {
 						H.MsgToMaster.States = msg.E
-						//helloTx <- H.MsgToMaster
-						repeatTx <- H.MsgToMaster
 						H.MsgToMaster.Number++
+						pendingUpdates <- "To MASTER"
 					} else {
-						msg.E.Order[0] = msg.E.LightMatrix[0]
-						msg.E.Order[1] = msg.E.LightMatrix[1]
-						fmt.Printf("\nSent %v\n\n", msg)
-						msg.E.ID += " MsgHandlerNoConnection"
-						msgChanLocal <- decoding.EncodeElevatorMsg(msg)
+						H.MsgToElev = H.MsgFromElev
+						H.MsgToElev.E.Order[0] = H.MsgToElev.E.LightMatrix[0]
+						H.MsgToElev.E.Order[1] = H.MsgToElev.E.LightMatrix[1]
+						pendingUpdates <- "From myself"
 					}
 					H.MyElevStates = msg.E
 				} else {
 					H.RelationElevator = Crashed
+					pendingUpdates <- "From myself"
 				}
-				H.RelationElevator = UpToDate
+				H.RelationElevator = Connected
 			}
 		case <-printStatus:
 			//fmt.Printf("\nPRINTOUT %v\n\n", H.MyElevStates)

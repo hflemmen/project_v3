@@ -1,17 +1,16 @@
-package idGenerator 
+package idGenerator
 
 import (
-	"time"
 	"math/rand"
+	"time"
 )
 
 func GetRandomID() string {
-        rand.Seed(time.Now().UTC().UnixNano())
-        buf := make([]byte, 8)
-        for i, _ := range buf {
-                buf[i] = byte(48 + rand.Intn(122-48))
-        }
+	rand.Seed(time.Now().UTC().UnixNano())
+	buf := make([]byte, 5)
+	for i, _ := range buf {
+		buf[i] = byte(97 + rand.Intn(123-97))
+	}
 
-        return "C{" + string(buf[:]) + "}"
+	return string(buf[:])
 }
-
