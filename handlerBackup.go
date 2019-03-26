@@ -68,7 +68,7 @@ func main() {
 			}
 		sw:
 			switch {
-			case len(nonElevatorPeers) == 1:
+			case len(nonElevatorPeers) <= 1:
 				if strings.HasPrefix(id, "MASTER") {
 					id = "Backup - " + myName
 					terminateTransmitter <- true
