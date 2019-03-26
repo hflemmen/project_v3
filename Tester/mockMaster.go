@@ -2,6 +2,8 @@ package main
 
 import (
 	"../orders/elevio/ordStruct"
+	"../MakkerModul/connector"
+	"../MakkerModul/decoding"
 	"fmt"
 	"os"
 	"time"
@@ -11,11 +13,6 @@ import (
 // We define some custom struct to send over the network.
 // Note that all members we want to transmit must be public. Any private members
 //  will be received as zero-values.
-type MsgFromHandlerToHandler struct {
-	Id string
-	States ordStruct.Elevator
-	Number int
-}
 
 func main() {
 	newOrder := make(chan ordStruct.ButtonEvent)
@@ -38,13 +35,12 @@ func main() {
 		select {
 
 		case a := <-receiveLocal:
-			if a.Id != "MASTER"{
-				fmt.Printf("Received from: %#v\n", a.Id)
-				a.States.ID += " Master"
-				e = a.States
-				msg := MsgFromHandlerToHandler{Id: "MASTER", States:a.States, Number : 1}
-				msgChanLocal <- msg
-			}
+			fmt.Printf("Received from: %#v\n", a.Id)
+			backupMsg := decoding.BackupMsg{Elevators: elevMap, Number: 1}
+			// do something
+			//key = cost
+				msgChanLocal <- decoding.EncodeBackupMsg(backupMsg)
+			msgChanLocal <- msg
 		case a := <-newOrder:
 			if a.Floor != e.Floor {
 				e.LightMatrix[int(a.Button)][a.Floor] = 1

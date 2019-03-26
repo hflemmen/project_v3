@@ -115,12 +115,11 @@ func main() {
 			if a.Id != "MASTER" {
 				fmt.Printf("Received from: %#v\n", a.Id)
 				elevMap[a.Id] = a.States
-				msg := decoding.BackupMsg{Elevators: elevMap, Number: 1}
-				msgChanLocal <- decoding.EncodeBackupMsg(decoding.)
+				latestOrder := a.States.CheckLatestOrder()
+				backupMsg := decoding.BackupMsg{Elevators: elevMap,LatestOrder: latestOrder Number: 1}
+				msgChanLocal <- decoding.EncodeBackupMsg(backupMsg)
 			}
 		case a := <-receiveLocal:
-
-		
-
+			helloTx <- 
 	}
 }

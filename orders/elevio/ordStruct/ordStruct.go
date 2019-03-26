@@ -114,6 +114,16 @@ func (e *Elevator) PrintLightMatrix() {
 	}
 	fmt.Print("]\n")
 }
+func (e *Elevator)CheckLatestOrder()(ButtonEvent) {
+	for btn := 0; btn < 2; btn++ {
+		for floor := 0; floor < e.NumFloors; floor++{
+			if e.order[btn][floor] == 0 && e.LightMatrix[btn][floor] == 1 {
+				return ButtonEvent{Button: ordStruct.ButtonType(btn),Floor: floor}
+			}
+		}
+	}
+	return ButtonEvent{Floor: -1}
+}
 
 /*
 func (e *Elevator) LightUpdate(button ButtonType,floor int, on bool, receiverLights chan<- LightEvent){
