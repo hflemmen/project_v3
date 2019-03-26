@@ -57,7 +57,6 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 		e.Floor = f
 		e.Behaviour = ordStruct.E_DoorOpen
 	}
-	states <- e
 	for {
 		prevElevator := e
 	sel:
@@ -184,13 +183,11 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 func message_handler(receive <-chan string, msgChan chan<- string,
 	newOrders chan ordStruct.ButtonEvent, states chan ordStruct.Elevator, updateLights chan<- ordStruct.LightType) {
 	msgToHandler := decoding.ElevatorMsg{Number: 1}
-	//hasConnection := false
 	for {
 		select {
 		case a := <-receive:
 			msg := decoding.DecodeElevatorMsg(a)
 			buttons, floors := msgToHandler.E.Differences(msg.E)
-			//fmt.Println("Legger til ", floors)
 			for i, _ := range buttons {
 				newOrders <- ordStruct.ButtonEvent{
 					Floor:  floors[i],
