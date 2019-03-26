@@ -25,14 +25,17 @@ type MsgFromHandlerToHandler struct {
 
 func main() {
 	time.Sleep(time.Millisecond) //kun så time er brukt
-	var id string
-	idCode := idGenerator.GetRandomID()
-	fmt.Printf("#####################################\nStarting a backup with idCode %v \n#####################################\n", idCode)
-
-	flag.StringVar(&id, "id", "Backup - ", "id of this peer")
+	var myName string
+	flag.StringVar(&myName, "name", "", "id of this peer")
 	flag.Parse()
 
-	id = id + idCode
+	if myName == "" {
+		myName = idGenerator.GetRandomID()
+	}
+
+	id := "Backup - " + myName
+	fmt.Printf("#####################################\nStarting a backup with myName %v \n#####################################\n", myName)
+
 	peerUpdateCh := make(chan peers.PeerUpdate)
 	peerTxEnable := make(chan bool)
 	terminateTransmitter := make(chan bool)
@@ -67,7 +70,7 @@ func main() {
 			switch {
 			case len(nonElevatorPeers) == 1:
 				if strings.HasPrefix(id, "MASTER") {
-					id = "Backup - " + idCode
+					id = "Backup - " + myName
 					terminateTransmitter <- true
 					go peers.Transmitter(15647, id, peerTxEnable, terminateTransmitter)
 				}
@@ -92,7 +95,7 @@ func main() {
 				if strings.HasSuffix(id, idOfMasterToBe) && strings.HasPrefix(id, "Backup") {
 					terminateTransmitter <- true
 					fmt.Println("I am the master now")
-					id = "MASTER - " + idCode
+					id = "MASTER - " + myName
 					go peers.Transmitter(15647, id, peerTxEnable, terminateTransmitter)
 				}
 			}

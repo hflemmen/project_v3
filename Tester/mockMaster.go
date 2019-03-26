@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 	"time"
-	//"math/rand"
+	"math/rand"
 )
 
 // We define some custom struct to send over the network.
@@ -60,9 +60,14 @@ func main() {
 	newOrder := make(chan ordStruct.ButtonEvent)
 	// The example message. We just send one of these every second.
 	go func() {
-		someOrder := ordStruct.ButtonEvent{Button:ordStruct.BT_HallUp,Floor:0}
 		for {
-			time.Sleep(2 * time.Second)
+			someOrder := ordStruct.ButtonEvent{Button:ordStruct.ButtonType(rand.Intn(2)),Floor:rand.Intn(3)}
+			if (someOrder.Button == ordStruct.BT_HallDown && someOrder.Floor == 0) {
+				someOrder.Button = ordStruct.BT_HallUp
+			} else if (someOrder.Button == ordStruct.BT_HallUp && someOrder.Floor == 3) {
+				someOrder.Button = ordStruct.BT_HallDown
+			}
+			time.Sleep(4 * time.Second)
 			newOrder <- someOrder
 		}
 	}()
