@@ -7,11 +7,20 @@ import (
 	"./network/idGenerator"
 	"./network/peers"
 	"./orders/elevio/ordStruct"
-	"./msgStruct"
 	"flag"
 	"fmt"
 	"strings"
 	"time"
+)
+
+///////	MSG HANDLER //////
+
+const (
+	PARTNER_NAME       = "elevator_fsm.go"
+	LOCAL_RECEIVE_PORT = 55555
+	LOCAL_SEND_PORT    = 44444
+	BROAD_PORT         = 16569
+	PEER_PORT          = 15647
 )
 
 type relationship int
@@ -35,14 +44,18 @@ type MsgHandler struct {
 	MsgToElev    decoding.ElevatorMsg
 	MsgFromElev  decoding.ElevatorMsg
 
-	MsgToMaster   msgStruct.MsgFromElevator
-	MsgFromMaster msgStruct.MsgFromMaster
+	MsgToMaster   MsgFromHandlerToHandler
+	MsgFromMaster MsgFromHandlerToHandler
 
 	RelationElevator relationship
 	RelationMaster   relationship
 }
 
-
+type MsgFromHandlerToHandler struct {
+	Id     string
+	States ordStruct.Elevator
+	Number int
+}
 
 func main() {
 	H := MsgHandler{MsgFromElev: decoding.ElevatorMsg{Number: 0},
@@ -66,15 +79,15 @@ func main() {
 	peerUpdateCh := make(chan peers.PeerUpdate)
 	peerTxEnable := make(chan bool)
 
-	go peers.Transmitter(15647, id, peerTxEnable, peerTxEnable)
-	go peers.Receiver(15647, peerUpdateCh)
+	go peers.Transmitter(PEER_PORT, id, peerTxEnable, peerTxEnable)
+	go peers.Receiver(PEER_PORT, peerUpdateCh)
 
 	netTx := make(chan MsgFromHandlerToHandler)
 	netRx := make(chan MsgFromHandlerToHandler)
 	repeatTx := make(chan MsgFromHandlerToHandler)
 
-	go bcast.Transmitter(16569, netTx)
-	go bcast.Receiver(16569, netRx)
+	go bcast.Transmitter(BROAD_PORT, netTx)
+	go bcast.Receiver(BROAD_PORT, netRx)
 
 	go func() {
 		for a := range repeatTx {
@@ -86,7 +99,7 @@ func main() {
 	}()
 
 	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
-		"elevator_fsm.go", 55555, 44444)
+		PARTNER_NAME, LOCAL_RECEIVE_PORT, LOCAL_SEND_PORT)
 	printStatus := make(chan bool)
 	go func() {
 		for {

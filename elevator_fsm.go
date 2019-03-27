@@ -11,22 +11,25 @@ import (
 	"time"
 )
 
+//////	ELEVATOR FSM //////
+const (
+	PARTNER_NAME = "msgHandler.go"
+	SEND_PORT    = 55555
+	RECEIVE_PORT = 44444
+	NUMFLOORS    = ordStrunct.NUMFLOORS
+)
+
 func main() {
 	fmt.Println("Starting elevator")
-	floors := flag.Int("floors", 4, "number of floors")
 	port := flag.Int("port", 15657, "number of floors")
 	flag.Parse()
-	numFloors := *floors
 
-	if numFloors == 0 {
-		numFloors = 4
-	}
 	if *port == 0 {
 		*port = 15657
 	}
 
-	elevio.Init(fmt.Sprintf("localhost:%v", *port), numFloors)
-	e := ordStruct.ElevatorInit(numFloors)
+	elevio.Init(fmt.Sprintf("localhost:%v", *port), NUMFLOORS)
+	e := ordStruct.ElevatorInit()
 	states := make(chan ordStruct.Elevator)
 	//elevio.SetMotorDirection(d)
 
@@ -35,7 +38,7 @@ func main() {
 	floorArrivals := make(chan int)
 	updateLights := make(chan ordStruct.LightType)
 	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
-		"msgHandler.go", 44444, 55555)
+		PARTNER_NAME, RECEIVE_PORT, SENDPORT)
 	go elevio.PollButtons(newButton, newOrders)
 	go elevio.PollFloorSensor(floorArrivals)
 	go message_handler(e.Duplicate(), receiveLocal, msgChanLocal, newOrders, states, updateLights)
