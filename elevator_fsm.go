@@ -49,6 +49,7 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 	var doorTimer <-chan time.Time
 	errorCh := make(chan string)
 
+	prevElevator := e
 	go func() {
 		for err := range errorCh {
 			fmt.Println("Error in FSM - ", err)
@@ -66,7 +67,6 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 		e.Behaviour = ordStruct.E_DoorOpen
 	}
 	for {
-		prevElevator := e
 	sel:
 		select {
 		case a := <-newButton:
@@ -102,10 +102,8 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					}
 				}
 			}
-			if e != prevElevator {
-				states <- e.Duplicate()
-			}
 		case a := <-newOrders:
+			fmt.Println("Adding order ", a)
 			switch e.Behaviour {
 			case ordStruct.E_Idle:
 				if e.Floor == a.Floor {
@@ -162,9 +160,6 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 				errorCh <- "Arrived on floor with doors open!"
 			}
 
-			if e != prevElevator {
-				states <- e.Duplicate()
-			}
 		case <-doorTimer:
 
 			switch e.Behaviour {
@@ -184,12 +179,14 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					e.Behaviour = ordStruct.E_Moving
 				}
 			}
-			if prevElevator != e {
-				states <- e.Duplicate()
-			}
 		case a := <-updateLights:
 			e.LightMatrix = a
 			orders.UpdateLights(e)
+		case <-time.After(20 * time.Millisecond):
+			if prevElevator != e {
+				states <- e.Duplicate()
+			}
+			prevElevator = e
 		}
 	}
 }
@@ -202,7 +199,6 @@ func message_handler(receive <-chan string, msgChan chan<- string,
 		select {
 		case a := <-receive:
 			msg := decoding.DecodeElevatorMsg(a)
-			fmt.Println(msg)
 			if msg != msgFromHandler {
 				buttons, floors := msgToHandler.E.Differences(msg.E)
 				for i, button := range buttons {
