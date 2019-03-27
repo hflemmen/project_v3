@@ -119,21 +119,23 @@ func main() {
 			fmt.Println("#####################################")
 
 		case a := <-helloRx:
-			if !strings.HasPrefix(a.Id,"Backup") {
+			if !strings.HasPrefix(a.Id,"MASTER") {
 				fmt.Println("HelloRx Id: ",a.Id)
 				fmt.Printf("Received from: %#v\n", a.Id)
 				ElevatorMap.Elevators[a.Id] = cost.ElevatorStatus{E:a.States}
-				latestOrder := a.States.CheckLatestOrder()
-				if (latestOrder.Floor == -1) {
-					break
+				if !strings.HasPrefix(id,"Backup") {
+					latestOrder := a.States.CheckLatestOrder()
+					if (latestOrder.Floor == -1) {
+						break
+					}
+					fmt.Println("Latest Button: ",int(latestOrder.Button),"Latest Floor: ", latestOrder.Floor)
+					fmt.Println("New OrderUpdate Master")
+					elevId = ElevatorMap.ChooseElevator(latestOrder.Button, latestOrder.Floor)
+					elevStatus := ElevatorMap.Elevators[elevId]
+					elevStatus.E.LightMatrix[int(latestOrder.Button)][latestOrder.Floor] = true
+					fmt.Println("This is the Id from cost function: ",elevId)
+					helloTx <- MsgFromHandlerToHandler{Id: id,ElevId: elevId,States: elevStatus.E}
 				}
-				fmt.Println("Latest Button: ",int(latestOrder.Button),"Latest Floor: ", latestOrder.Floor)
-				fmt.Println("New OrderUpdate Master")
-				elevId = ElevatorMap.ChooseElevator(latestOrder.Button, latestOrder.Floor)
-				elevStatus := ElevatorMap.Elevators[elevId]
-				elevStatus.E.LightMatrix[int(latestOrder.Button)][latestOrder.Floor] = true
-				fmt.Println("This is the Id from cost function: ",elevId)
-				helloTx <- MsgFromHandlerToHandler{Id: id,ElevId: elevId,States: elevStatus.E}
 			}
 		}
 	}
