@@ -5,6 +5,7 @@ import "time"
 
 const DOOR_OPEN_TIME = 3 * time.Second
 const NUMFLOORS = 4
+
 type behaviourType int
 
 const (
@@ -47,15 +48,14 @@ type LightType [2][NUMFLOORS]bool
 
 type Elevator struct {
 	Floor       int
-	NumFloors   int
 	Dir         MotorDirection
 	Order       [3][NUMFLOORS]bool
 	Behaviour   behaviourType
 	LightMatrix LightType
 }
 
-func ElevatorInit(floors int) (e Elevator) {
-	e = Elevator{NumFloors: floors, Dir: 0}
+func ElevatorInit() (e Elevator) {
+	e = Elevator{Dir: 0}
 	return
 }
 func (e *Elevator) Duplicate() (e2 Elevator) {
@@ -75,7 +75,7 @@ func (e *Elevator) Differences(e2 Elevator) ([]int, []int) {
 	buttons := make([]int, 0)
 	floors := make([]int, 0)
 	for i := 0; i < 3; i++ {
-		for j := 0; j < e.NumFloors; j++ {
+		for j := 0; j < NUMFLOORS; j++ {
 			if e2.Order[i][j] == true && e.Order[i][j] == false {
 				buttons = append(buttons, i)
 				floors = append(floors, j)
@@ -113,9 +113,9 @@ func (e *Elevator) PrintLightMatrix() {
 	}
 	fmt.Print("]\n")
 }
-func (e *Elevator) CheckOrderUpdate() (ButtonEvent) {
-	for btn := 0; btn < 3; btn ++ {
-		for floor := 0; floor < e.NumFloors; floor++ {
+func (e *Elevator) CheckOrderUpdate() ButtonEvent {
+	for btn := 0; btn < 3; btn++ {
+		for floor := 0; floor < NUMFLOORS; floor++ {
 			if e.Order[btn][floor] == false && e.LightMatrix[btn][floor] == true {
 				return ButtonEvent{Button: ButtonType(btn), Floor: floor}
 			}
@@ -123,4 +123,3 @@ func (e *Elevator) CheckOrderUpdate() (ButtonEvent) {
 	}
 	return ButtonEvent{Floor: -1}
 }
-

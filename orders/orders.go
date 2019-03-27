@@ -4,9 +4,12 @@ import . "./elevio/ordStruct"
 import "./elevio"
 
 //import "time"
+const (
+	NUMFLOORS = ordStruct.NUMFLOORS
+)
 
 func orderAbove(e Elevator) bool {
-	for floor := e.Floor + 1; floor < e.NumFloors; floor++ {
+	for floor := e.Floor + 1; floor < NUMFLOORS; floor++ {
 		for btn := 0; btn < 3; btn++ {
 			if e.Order[btn][floor] {
 				return true
@@ -95,7 +98,7 @@ func ClearLightsAtCurrentFloor(e Elevator) Elevator {
 }
 
 func UpdateLights(e Elevator) {
-	for floor := 0; floor < e.NumFloors; floor++ {
+	for floor := 0; floor < NUMFLOORS; floor++ {
 		for btn := 0; btn < 2; btn++ {
 			if e.LightMatrix[btn][floor] {
 				elevio.SetButtonLamp(ButtonType(btn), floor, true)
