@@ -48,7 +48,7 @@ type MsgFromHandlerToHandler struct {
 }
 
 func main() {
-	H := MsgHandler{MsgFromElev: decoding.ElevatorMsg{Number: -1},
+	H := MsgHandler{MsgFromElev: decoding.ElevatorMsg{Number: 0},
 		RelationElevator: Disconnected, RelationMaster: Disconnected}
 	pendingUpdates := make(chan pendingType)
 	var myName string
@@ -75,6 +75,7 @@ func main() {
 	netTx := make(chan MsgFromHandlerToHandler)
 	netRx := make(chan MsgFromHandlerToHandler)
 	repeatTx := make(chan MsgFromHandlerToHandler)
+
 	go bcast.Transmitter(16569, netTx)
 	go bcast.Receiver(16569, netRx)
 
@@ -140,12 +141,15 @@ func main() {
 					H.MsgToElev = H.MsgFromElev
 				}
 				H.RelationElevator = Crashed
-				pendingUpdates <- FromMsgHandler
 			case "Connection established":
 				if H.RelationElevator == Disconnected {
 					H.RelationElevator = Connected
-					pendingUpdates <- FromMsgHandler
-					pendingUpdates <- FromMaster
+					switch H.RelationMaster {
+					case Disconnected:
+						pendingUpdates <- FromMsgHandler
+					default:
+						pendingUpdates <- FromMaster
+					}
 				}
 			default:
 				msg := decoding.DecodeElevatorMsg(a)

@@ -26,7 +26,7 @@ func main() {
 	}
 
 	elevio.Init(fmt.Sprintf("localhost:%v", *port), numFloors)
-	e := ordStruct.ElevatorInit("elev", numFloors)
+	e := ordStruct.ElevatorInit(numFloors)
 	states := make(chan ordStruct.Elevator)
 	//elevio.SetMotorDirection(d)
 

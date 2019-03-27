@@ -46,7 +46,6 @@ type ButtonEvent struct {
 type LightType [2][4]bool
 
 type Elevator struct {
-	ID          string
 	Floor       int
 	NumFloors   int
 	Dir         MotorDirection
@@ -55,8 +54,8 @@ type Elevator struct {
 	LightMatrix LightType
 }
 
-func ElevatorInit(id string, floors int) (e Elevator) {
-	e = Elevator{ID: id, NumFloors: floors, Dir: 0}
+func ElevatorInit(floors int) (e Elevator) {
+	e = Elevator{NumFloors: floors, Dir: 0}
 	return
 }
 func (e *Elevator) Duplicate() (e2 Elevator) {
@@ -114,17 +113,6 @@ func (e *Elevator) PrintLightMatrix() {
 	}
 	fmt.Print("]\n")
 }
-func (e *Elevator)CheckLatestOrder()(ButtonEvent) {
-	for btn := 0; btn < 2; btn++ {
-		for floor := 0; floor < e.NumFloors; floor++{
-			if e.Order[btn][floor] == false && e.LightMatrix[btn][floor] == true {
-				return ButtonEvent{Button: ButtonType(btn),Floor: floor}
-			}
-		}
-	}
-	return ButtonEvent{Floor: -1}
-}
-
 
 /*
 func (e *Elevator) LightUpdate(button ButtonType,floor int, on bool, receiverLights chan<- LightEvent){
