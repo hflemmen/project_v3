@@ -14,7 +14,7 @@ import (
 func main() {
 	fmt.Println("Starting elevator")
 	floors := flag.Int("floors", 4, "number of floors")
-	port := flag.Int("port", 15657, "number of floors")
+	port := flag.Int("port", 15658, "number of floors")
 	flag.Parse()
 	numFloors := *floors
 
@@ -26,7 +26,7 @@ func main() {
 	}
 
 	elevio.Init(fmt.Sprintf("localhost:%v", *port), numFloors)
-	e := ordStruct.ElevatorInit(numFloors)
+	e := ordStruct.ElevatorInit("elev", numFloors)
 	states := make(chan ordStruct.Elevator)
 	//elevio.SetMotorDirection(d)
 
@@ -35,10 +35,10 @@ func main() {
 	floorArrivals := make(chan int)
 	updateLights := make(chan ordStruct.LightType)
 	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
-		"msgHandler.go", 44444, 55555)
+		"msgHandler2.go", 44445, 55556)
 	go elevio.PollButtons(newButton, newOrders)
 	go elevio.PollFloorSensor(floorArrivals)
-	go message_handler(e.Duplicate(), receiveLocal, msgChanLocal, newOrders, states, updateLights)
+	go connectionMsgHandler(receiveLocal, msgChanLocal, newOrders, states, updateLights)
 	elevator_fsm(e, newOrders, floorArrivals, states, updateLights, newButton)
 }
 
@@ -47,15 +47,6 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 	updateLights <-chan ordStruct.LightType, newButton <-chan ordStruct.ButtonEvent) {
 
 	var doorTimer <-chan time.Time
-	errorCh := make(chan string)
-
-	prevElevator := e
-	go func() {
-		for err := range errorCh {
-			fmt.Println("Error in FSM - ", err)
-		}
-	}()
-
 	f := elevio.GetFloor()
 	if f == -1 {
 		elevio.SetMotorDirection(ordStruct.MD_Down)
@@ -67,6 +58,7 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 		e.Behaviour = ordStruct.E_DoorOpen
 	}
 	for {
+		prevElevator := e
 	sel:
 		select {
 		case a := <-newButton:
@@ -101,6 +93,9 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 						e.LightMatrix[a.Button][a.Floor] = true
 					}
 				}
+			}
+			if e != prevElevator {
+				states <- e.Duplicate()
 			}
 		case a := <-newOrders:
 			switch e.Behaviour {
@@ -142,9 +137,7 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 
 			switch e.Behaviour {
 			case ordStruct.E_Idle:
-				errorCh <- "Arrived on floor when idle!"
-				fallthrough
-
+				//do nothing
 			case ordStruct.E_Moving:
 				if orders.ShouldStop(e) {
 					elevio.SetMotorDirection(ordStruct.MD_Stop)
@@ -154,20 +147,19 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					doorTimer = time.After(ordStruct.DOOR_OPEN_TIME)
 					e.Behaviour = ordStruct.E_DoorOpen
 				}
-
 			case ordStruct.E_DoorOpen:
-				errorCh <- "Arrived on floor with doors open!"
+				//nothing
 			}
-
+			if e != prevElevator {
+				states <- e.Duplicate()
+			}
 		case <-doorTimer:
 
 			switch e.Behaviour {
 			case ordStruct.E_Idle:
-				//nothing
-
+				fallthrough
 			case ordStruct.E_Moving:
-				errorCh <- "Door timer when moving!"
-
+				fallthrough
 			case ordStruct.E_DoorOpen:
 				e.Dir = orders.ChooseDirection(e)
 				elevio.SetDoorOpenLamp(false)
@@ -178,47 +170,39 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 					e.Behaviour = ordStruct.E_Moving
 				}
 			}
-		case a := <-updateLights:
-			e.LightMatrix = a
-			orders.UpdateLights(e)
-		case <-time.After(20 * time.Millisecond):
 			if prevElevator != e {
 				states <- e.Duplicate()
 			}
-			prevElevator = e
+		case a := <-updateLights:
+			e.LightMatrix = a
+			orders.UpdateLights(e)
+
 		}
 	}
 }
 
-func message_handler(elev ordStruct.Elevator, receive <-chan string, msgChan chan<- string,
+func connectionMsgHandler(receive <-chan string, msgChan chan<- string,
 	newOrders chan ordStruct.ButtonEvent, states chan ordStruct.Elevator, updateLights chan<- ordStruct.LightType) {
-	msgToHandler := decoding.ElevatorMsg{E: elev, Number: 0}
-	msgFromHandler := decoding.ElevatorMsg{}
+	msgToHandler := decoding.ElevatorMsg{Number: 1}
 	for {
 		select {
-
+		case a := <-receive:
+			msg := decoding.DecodeElevatorMsg(a)
+			buttons, floors := msgToHandler.E.Differences(msg.E)
+			for i, _ := range buttons {
+				newOrders <- ordStruct.ButtonEvent{
+					Floor:  floors[i],
+					Button: ordStruct.ButtonType(buttons[i]),
+				}
+			}
+			if msg.Number > msgToHandler.Number {
+				msgToHandler.Number = msg.Number
+			}
+			updateLights <- msg.E.LightMatrix
 		case e := <-states:
 			msgToHandler.E = e
 			msgToHandler.Number++
 			msgChan <- decoding.EncodeElevatorMsg(msgToHandler)
-		case a := <-receive:
-			msg := decoding.DecodeElevatorMsg(a)
-			if msg != msgFromHandler {
-				buttons, floors := msgToHandler.E.Differences(msg.E)
-				for i, button := range buttons {
-					newOrders <- ordStruct.ButtonEvent{
-						Floor:  floors[i],
-						Button: ordStruct.ButtonType(button),
-					}
-				}
-				if msg.Number > msgToHandler.Number {
-					msgToHandler.Number = msg.Number
-				}
-				if msg.Number != -1 {
-					updateLights <- msg.E.LightMatrix
-				}
-				msgFromHandler = msg
-			}
 		}
 	}
 }
