@@ -26,13 +26,3 @@ func EncodeElevatorMsg(msg ElevatorMsg) string {
 	bytes, _ := json.Marshal(msg)
 	return string(bytes)
 }
-
-func DecodeBackupMsg(str string) (outMsg BackupMsg) {
-	json.Unmarshal([]byte(str), &outMsg)
-	return
-}
-
-func EncodeBackupMsg(msg BackupMsg) string {
-	bytes, _ := json.Marshal(msg)
-	return string(bytes)
-}
