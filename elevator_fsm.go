@@ -38,7 +38,7 @@ func main() {
 		"msgHandler.go", 44444, 55555)
 	go elevio.PollButtons(newButton, newOrders)
 	go elevio.PollFloorSensor(floorArrivals)
-	go message_handler(receiveLocal, msgChanLocal, newOrders, states, updateLights)
+	go message_handler(e.Duplicate(), receiveLocal, msgChanLocal, newOrders, states, updateLights)
 	elevator_fsm(e, newOrders, floorArrivals, states, updateLights, newButton)
 }
 
@@ -103,7 +103,6 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 				}
 			}
 		case a := <-newOrders:
-			fmt.Println("Adding order ", a)
 			switch e.Behaviour {
 			case ordStruct.E_Idle:
 				if e.Floor == a.Floor {
@@ -191,12 +190,17 @@ func elevator_fsm(e ordStruct.Elevator, newOrders <-chan ordStruct.ButtonEvent,
 	}
 }
 
-func message_handler(receive <-chan string, msgChan chan<- string,
+func message_handler(elev ordStruct.Elevator, receive <-chan string, msgChan chan<- string,
 	newOrders chan ordStruct.ButtonEvent, states chan ordStruct.Elevator, updateLights chan<- ordStruct.LightType) {
-	msgToHandler := decoding.ElevatorMsg{Number: 0}
-	msgFromHandler := decoding.ElevatorMsg{Number: -99}
+	msgToHandler := decoding.ElevatorMsg{E: elev, Number: 0}
+	msgFromHandler := decoding.ElevatorMsg{}
 	for {
 		select {
+
+		case e := <-states:
+			msgToHandler.E = e
+			msgToHandler.Number++
+			msgChan <- decoding.EncodeElevatorMsg(msgToHandler)
 		case a := <-receive:
 			msg := decoding.DecodeElevatorMsg(a)
 			if msg != msgFromHandler {
@@ -215,11 +219,6 @@ func message_handler(receive <-chan string, msgChan chan<- string,
 				}
 				msgFromHandler = msg
 			}
-
-		case e := <-states:
-			msgToHandler.E = e
-			msgToHandler.Number++
-			msgChan <- decoding.EncodeElevatorMsg(msgToHandler)
 		}
 	}
 }
