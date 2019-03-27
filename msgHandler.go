@@ -101,7 +101,7 @@ func main() {
 			case FromMsgHandler:
 				msgChanLocal <- decoding.EncodeElevatorMsg(H.MsgToElev)
 			case FromMaster:
-				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E: H.MsgFromMaster.States})
+				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E: H.MsgFromMaster.Elevators[Id]})
 			case ToMaster:
 				repeatTx <- H.MsgToMaster
 			}
@@ -125,9 +125,8 @@ func main() {
 		case a := <-netRx:
 			if strings.HasPrefix(a.Id, "MASTER") {
 				fmt.Printf("Received from (not local) %v\n", a.Id)
-				a.States.Order[0] = a.States.LightMatrix[0]
-				a.States.Order[1] = a.States.LightMatrix[1]
-				H.MsgFromMaster.States = a.States
+				H.MsgFromMaster.Elevators[Id].LightMatrix = a.LightsHall 
+				H.MsgFromMaster.Elevators[Id] = a.Elevators[Id]
 				pendingUpdates <- FromMaster
 			}
 
