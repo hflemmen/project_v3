@@ -20,12 +20,8 @@ import (
 /*
 	TODO
 */
-type MsgFromHandlerToHandler struct {
-	Id     string
-	ElevId string
-	States ordStruct.Elevator
-	Number int
-}
+
+
 
 func main() {
 	time.Sleep(time.Millisecond) //kun så time er brukt
@@ -140,3 +136,4 @@ func main() {
 		}
 	}
 }
+

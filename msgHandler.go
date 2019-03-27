@@ -7,6 +7,7 @@ import (
 	"./network/idGenerator"
 	"./network/peers"
 	"./orders/elevio/ordStruct"
+	"./msgStruct"
 	"flag"
 	"fmt"
 	"strings"
@@ -34,18 +35,14 @@ type MsgHandler struct {
 	MsgToElev    decoding.ElevatorMsg
 	MsgFromElev  decoding.ElevatorMsg
 
-	MsgToMaster   MsgFromHandlerToHandler
-	MsgFromMaster MsgFromHandlerToHandler
+	MsgToMaster   msgStruct.MsgFromElevator
+	MsgFromMaster msgStruct.MsgFromMaster
 
 	RelationElevator relationship
 	RelationMaster   relationship
 }
 
-type MsgFromHandlerToHandler struct {
-	Id     string
-	States ordStruct.Elevator
-	Number int
-}
+
 
 func main() {
 	H := MsgHandler{MsgFromElev: decoding.ElevatorMsg{Number: 0},
