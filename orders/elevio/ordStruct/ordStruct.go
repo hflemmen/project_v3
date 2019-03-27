@@ -4,7 +4,7 @@ import "fmt"
 import "time"
 
 const DOOR_OPEN_TIME = 3 * time.Second
-
+const NUMFLOORS = 4
 type behaviourType int
 
 const (
@@ -43,13 +43,13 @@ type ButtonEvent struct {
 	Button    ButtonType
 }
 
-type LightType [2][4]bool
+type LightType [2][NUMFLOORS]bool
 
 type Elevator struct {
 	Floor       int
 	NumFloors   int
 	Dir         MotorDirection
-	Order       [3][4]bool
+	Order       [3][NUMFLOORS]bool
 	Behaviour   behaviourType
 	LightMatrix LightType
 }
@@ -113,20 +113,14 @@ func (e *Elevator) PrintLightMatrix() {
 	}
 	fmt.Print("]\n")
 }
-
-/*
-func (e *Elevator) LightUpdate(button ButtonType,floor int, on bool, receiverLights chan<- LightEvent){
-	if button == BT_Cab {
-		fmt.Println("Error: external light can not be CAB!")
-	}
-	receiverLights<-LightEvent{Floor: floor, On: on, Button: button}
-
-	for i := 0; i < 2; i++ {
-		for j := 0; j < 4; j++ {
-				e.Lights[i][j]|= externalList[i][j]
+func (e *Elevator) CheckOrderUpdate() (ButtonEvent) {
+	for btn := 0; btn < 3; btn ++ {
+		for floor := 0; floor < e.NumFloors; floor++ {
+			if e.Order[btn][floor] == false && e.LightMatrix[btn][floor] == true {
+				return ButtonEvent{Button: ButtonType(btn), Floor: floor}
 			}
 		}
 	}
-
+	return ButtonEvent{Floor: -1}
 }
-*/
+
