@@ -16,7 +16,7 @@ const (
 	PARTNER_NAME = "msgHandler.go"
 	SEND_PORT    = 55555
 	RECEIVE_PORT = 44444
-	NUMFLOORS    = ordStrunct.NUMFLOORS
+	NUMFLOORS    = ordStruct.NUMFLOORS
 )
 
 func main() {
@@ -38,7 +38,7 @@ func main() {
 	floorArrivals := make(chan int)
 	updateLights := make(chan ordStruct.LightType)
 	receiveLocal, msgChanLocal := connector.EstablishLocalTunnel(
-		PARTNER_NAME, RECEIVE_PORT, SENDPORT)
+		PARTNER_NAME, RECEIVE_PORT, SEND_PORT)
 	go elevio.PollButtons(newButton, newOrders)
 	go elevio.PollFloorSensor(floorArrivals)
 	go message_handler(e.Duplicate(), receiveLocal, msgChanLocal, newOrders, states, updateLights)

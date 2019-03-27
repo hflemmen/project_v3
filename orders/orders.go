@@ -1,12 +1,10 @@
 package orders
 
-import . "./elevio/ordStruct"
+import ."./elevio/ordStruct"
 import "./elevio"
 
 //import "time"
-const (
-	NUMFLOORS = ordStruct.NUMFLOORS
-)
+
 
 func orderAbove(e Elevator) bool {
 	for floor := e.Floor + 1; floor < NUMFLOORS; floor++ {

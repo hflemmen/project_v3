@@ -7,6 +7,7 @@ import (
 	"./network/idGenerator"
 	"./network/peers"
 	"./orders/elevio/ordStruct"
+	"./msgStruct"
 	"flag"
 	"fmt"
 	"strings"
@@ -34,7 +35,7 @@ const (
 type pendingType int
 
 const (
-	FromMsgHandler pendingType = 2
+	ToFSM          pendingType = 2
 	FromMaster                 = 1
 	ToMaster                   = 0
 )
@@ -44,8 +45,8 @@ type MsgHandler struct {
 	MsgToElev    decoding.ElevatorMsg
 	MsgFromElev  decoding.ElevatorMsg
 
-	MsgToMaster   MsgFromHandlerToHandler
-	MsgFromMaster MsgFromHandlerToHandler
+	MsgToMaster   msgStruct.MsgFromElevator
+	MsgFromMaster msgStruct.MsgFromMaster
 
 	RelationElevator relationship
 	RelationMaster   relationship
@@ -73,7 +74,7 @@ func main() {
 	id := "Elev - " + myName
 	fmt.Printf("#####################################\nelevtorMSGHANDLER with myName %v \n#####################################\n", myName)
 
-	H.MsgToMaster.Id = id
+	H.MsgToMaster.ElevId = id
 	H.MsgToMaster.Number = 0
 
 	peerUpdateCh := make(chan peers.PeerUpdate)
@@ -82,9 +83,9 @@ func main() {
 	go peers.Transmitter(PEER_PORT, id, peerTxEnable, peerTxEnable)
 	go peers.Receiver(PEER_PORT, peerUpdateCh)
 
-	netTx := make(chan MsgFromHandlerToHandler)
-	netRx := make(chan MsgFromHandlerToHandler)
-	repeatTx := make(chan MsgFromHandlerToHandler)
+	netTx := make(chan msgStruct.MsgFromElevator)
+	netRx := make(chan msgStruct.MsgFromMaster)
+	repeatTx := make(chan msgStruct.MsgFromElevator)
 
 	go bcast.Transmitter(BROAD_PORT, netTx)
 	go bcast.Receiver(BROAD_PORT, netRx)
@@ -111,10 +112,10 @@ func main() {
 	go func() {
 		for update := range pendingUpdates {
 			switch update {
-			case FromMsgHandler:
+			case ToFSM:
 				msgChanLocal <- decoding.EncodeElevatorMsg(H.MsgToElev)
 			case FromMaster:
-				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E: H.MsgFromMaster.Elevators[Id]})
+				msgChanLocal <- decoding.EncodeElevatorMsg(decoding.ElevatorMsg{E: H.MsgFromMaster.ElevatorMap.Elevators[id].E})
 			case ToMaster:
 				repeatTx <- H.MsgToMaster
 			}
@@ -138,8 +139,9 @@ func main() {
 		case a := <-netRx:
 			if strings.HasPrefix(a.Id, "MASTER") {
 				fmt.Printf("Received from (not local) %v\n", a.Id)
-				H.MsgFromMaster.Elevators[Id].LightMatrix = a.LightsHall 
-				H.MsgFromMaster.Elevators[Id] = a.Elevators[Id]
+				LightMatrixTemp := H.MsgFromMaster.ElevatorMap.Elevators[id].E.LightMatrix
+				a.ElevatorMap.Elevators[id].E.LightMatrix = LightMatrixTemp
+				H.MsgFromMaster.ElevatorMap.Elevators[id].E = a.ElevatorMap.Elevators[id].E
 				pendingUpdates <- FromMaster
 			}
 
@@ -155,7 +157,7 @@ func main() {
 					H.RelationElevator = Connected
 					switch H.RelationMaster {
 					case Disconnected:
-						pendingUpdates <- FromMsgHandler
+						pendingUpdates <- ToFSM
 					default:
 						pendingUpdates <- FromMaster
 					}
@@ -172,12 +174,12 @@ func main() {
 						H.MsgToElev = H.MsgFromElev
 						H.MsgToElev.E.Order[0] = H.MsgToElev.E.LightMatrix[0]
 						H.MsgToElev.E.Order[1] = H.MsgToElev.E.LightMatrix[1]
-						pendingUpdates <- FromMsgHandler
+						pendingUpdates <- ToFSM
 					}
 					H.MyElevStates = msg.E
 				} else {
 					H.RelationElevator = Crashed
-					pendingUpdates <- FromMsgHandler
+					pendingUpdates <- ToFSM
 				}
 				H.RelationElevator = Connected
 			}

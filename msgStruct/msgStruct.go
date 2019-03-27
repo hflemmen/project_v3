@@ -7,7 +7,7 @@ import (
 
 type MsgFromMaster struct {
 	Id     string
-	Elevators cost.ElevMap
+	ElevatorMap cost.ElevMap
 	LightsHall ordStruct.LightType
 	Number int 
 }
@@ -21,8 +21,8 @@ type MsgFromElevator struct{
 
 
 func (msg *MsgFromMaster) UpdateLightMatrix(){
-	elevator :=make(ordStruct.Elevator)
-    for _,elevator_status := range msg.Elevators{
+	var elevator ordStruct.Elevator
+    for _,elevator_status := range msg.ElevatorMap.Elevators{
     	elevator = elevator_status.E
     	if elevator.Behaviour == ordStruct.E_DoorOpen{
     		//if door is open in a floor we can turn of the lights in the corresponding floor
